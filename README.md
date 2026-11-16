@@ -6,10 +6,10 @@ Navodila za igralce brez tehničnega znanja so v uporabniškem priročniku (`doc
 ## Ekipa
 | Vloga | Ime |
 |---|---|
-| Razvijalec AI rešitve | _ime_ |
-| Razvijalec vmesnika | _ime_ |
-| Skrbnik dokumentacije in testiranja | _ime_ |
-| Mentor | _ime_ |
+| Razvijalec AI rešitve | _Nace Gantar_ |
+| Razvijalec vmesnika | _Žiga Korez_ |
+| Skrbnik dokumentacije in testiranja | _Nejc Košenina_ |
+| Mentor | _Prof. Matic Holobar_ |
 
 ## Hiter zagon (razvojno okolje)
 Potrebujete Python 3.10 ali novejšega.
