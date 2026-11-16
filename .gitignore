@@ -1,0 +1,17 @@
+# Skrivnosti – NIKOLI na GitHub
+.env
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# Node (če bo kdaj potrebno)
+node_modules/
+
+# Sistem / urejevalniki
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/

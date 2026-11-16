@@ -1,0 +1,226 @@
+<!doctype html>
+<html lang="sl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Kdo je kriv?</title>
+<style>
+  :root { --bg:#1b1a17; --panel:#26241f; --line:#3a372f; --text:#ece6d6; --muted:#a39b86;
+          --accent:#d9a441; --danger:#c8553d; --ok:#5b9a68; }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--bg); color:var(--text); font:16px/1.5 Georgia, serif; }
+  header { padding:14px 20px; border-bottom:1px solid var(--line); display:flex; gap:16px; align-items:center; flex-wrap:wrap; }
+  h1 { margin:0; font-size:24px; color:var(--accent); }
+  .opozorilo { font:13px system-ui, sans-serif; color:var(--muted); flex:1; }
+  button { font:14px system-ui, sans-serif; background:var(--accent); color:#1b1a17; border:0; border-radius:6px; padding:8px 14px; cursor:pointer; }
+  button.sek { background:transparent; color:var(--text); border:1px solid var(--line); }
+  button.nev { background:var(--danger); color:#fff; }
+  button:disabled { opacity:.5; cursor:default; }
+  main { display:grid; grid-template-columns:220px 1fr 300px; gap:16px; padding:16px 20px; height:calc(100vh - 70px); }
+  section { background:var(--panel); border:1px solid var(--line); border-radius:10px; padding:14px; overflow:auto; }
+  h2 { margin:0 0 10px; font-size:15px; text-transform:uppercase; letter-spacing:.08em; color:var(--muted); font-family:system-ui, sans-serif; }
+  .oseba { display:flex; gap:10px; align-items:center; padding:10px; border-radius:8px; cursor:pointer; border:1px solid transparent; }
+  .oseba:hover { background:#2f2c26; }
+  .oseba.izbrana { border-color:var(--accent); background:#2f2c26; }
+  .oseba .ikona { flex:none; width:38px; height:38px; border-radius:50%; display:grid; place-items:center;
+                 background:#3a372f; color:var(--accent); font:600 14px system-ui, sans-serif; letter-spacing:.03em; }
+  .oseba.izbrana .ikona { background:var(--accent); color:#1b1a17; }
+  .msg.namig::before { content:"NOV DOKAZ V BELEŽKI"; display:block; font-size:11px; letter-spacing:.1em; opacity:.7; }
+  .msg.napaka::before { content:"NAPAKA"; display:block; font-size:11px; letter-spacing:.1em; opacity:.7; }
+  .oseba small { display:block; color:var(--muted); font-family:system-ui, sans-serif; }
+  #pogovor { display:flex; flex-direction:column; }
+  #sporocila { flex:1; overflow:auto; display:flex; flex-direction:column; gap:10px; padding-bottom:10px; }
+  .msg { max-width:80%; padding:10px 14px; border-radius:10px; white-space:pre-wrap; }
+  .msg.jaz { align-self:flex-end; background:#3b3426; }
+  .msg.ona { align-self:flex-start; background:#2f2c26; border:1px solid var(--line); }
+  .msg.sistem { align-self:center; font:13px system-ui, sans-serif; color:var(--muted); text-align:center; max-width:95%; }
+  .msg.napaka { align-self:center; background:#3a2420; color:#f3c2b6; font:14px system-ui, sans-serif; }
+  .msg.namig { align-self:center; background:#2a3a2c; color:#cfe8d3; font:14px system-ui, sans-serif; }
+  form { display:flex; gap:8px; }
+  input { flex:1; font:16px Georgia, serif; padding:10px; border-radius:6px; border:1px solid var(--line); background:#1f1d19; color:var(--text); }
+  .namigi-seznam { list-style:none; padding:0; margin:0; display:flex; flex-direction:column; gap:8px; }
+  .namigi-seznam li { background:#2f2c26; border-radius:8px; padding:10px; font-size:14px; }
+  .namigi-seznam button { margin-top:6px; padding:4px 10px; font-size:12px; }
+  .prazno { color:var(--muted); font-style:italic; font-size:14px; }
+  dialog { background:var(--panel); color:var(--text); border:1px solid var(--line); border-radius:12px; max-width:520px; }
+  dialog::backdrop { background:rgba(0,0,0,.6); }
+  .tipkam { color:var(--muted); font-style:italic; }
+  @media (max-width: 900px) { main { grid-template-columns:1fr; height:auto; } #pogovor { min-height:60vh; } }
+</style>
+</head>
+<body>
+<header>
+  <h1>Kdo je kriv?</h1>
+  <div class="opozorilo">Osumljence igra umetna inteligenca, ki se lahko moti ali si kaj izmisli. Ne vpisujte osebnih podatkov – vprašanja se pošiljajo AI storitvi.</div>
+  <button class="sek" id="gNova">Nova igra</button>
+  <button class="nev" id="gObtozi">Obtoži</button>
+</header>
+<main>
+  <section>
+    <h2>Osumljenci</h2>
+    <div id="osumljenci"></div>
+  </section>
+  <section id="pogovor">
+    <h2 id="naslovPogovora">Primer</h2>
+    <div id="sporocila"></div>
+    <form id="obrazec">
+      <input id="vnos" placeholder="Izberite osumljenca levo …" maxlength="500" disabled autocomplete="off">
+      <button id="gPoslji" disabled>Vprašaj</button>
+    </form>
+  </section>
+  <section>
+    <h2>Beležka z dokazi</h2>
+    <ul class="namigi-seznam" id="belezka"></ul>
+  </section>
+</main>
+
+<dialog id="dObtozba">
+  <h3>Koga obtožujete?</h3>
+  <p class="prazno">Imate samo en poskus.</p>
+  <div id="izbiraObtozbe"></div>
+  <p><button class="sek" onclick="dObtozba.close()">Prekliči</button></p>
+</dialog>
+<dialog id="dRezultat"><div id="rezultat"></div><p><button onclick="location.reload()">Igraj znova</button></p></dialog>
+
+<script>
+const $ = s => document.querySelector(s);
+let igra = null, osumljenci = [], izbran = null, belezka = [];
+const pogovori = {};   // zgodovina prikaza po osebah
+
+async function klic(pot, telo) {
+  try {
+    const r = await fetch(pot, { method: "POST", headers: {"Content-Type": "application/json"},
+                                 body: JSON.stringify({ igra, ...telo }) });
+    const d = await r.json();
+    return r.ok ? d : { napaka: d.napaka || "Neznana napaka." };
+  } catch {
+    return { napaka: "Strežnik se ne odziva. Preverite, ali igra še teče." };
+  }
+}
+
+function dodaj(oseba, vrsta, besedilo) {
+  (pogovori[oseba] ||= []).push({ vrsta, besedilo });
+  if (oseba === izbran) izrisiPogovor();
+}
+
+function izrisiPogovor() {
+  const el = $("#sporocila"); el.innerHTML = "";
+  for (const m of pogovori[izbran] || []) {
+    const d = document.createElement("div");
+    d.className = "msg " + m.vrsta; d.textContent = m.besedilo; el.appendChild(d);
+  }
+  el.scrollTop = el.scrollHeight;
+}
+
+const inicialke = ime => ime.split(" ").map(d => d[0]).join("");
+
+function izrisiOsumljence() {
+  $("#osumljenci").innerHTML = "";
+  for (const o of osumljenci) {
+    const d = document.createElement("div");
+    d.className = "oseba" + (o.id === izbran ? " izbrana" : "");
+    d.innerHTML = `<span class="ikona">${inicialke(o.ime)}</span><div>${o.ime}<small>${o.vloga}</small></div>`;
+    d.onclick = () => izberi(o.id);
+    $("#osumljenci").appendChild(d);
+  }
+}
+
+function izrisiBelezko() {
+  const ul = $("#belezka"); ul.innerHTML = "";
+  if (!belezka.length) { ul.innerHTML = '<li class="prazno">Še nimate dokazov. Sprašujte osumljence.</li>'; return; }
+  for (const n of belezka) {
+    const li = document.createElement("li");
+    li.textContent = n.besedilo;
+    if (izbran) {
+      const b = document.createElement("button");
+      b.className = "sek"; b.textContent = "Pokaži izbranemu";
+      b.onclick = () => pokazi(n);
+      li.appendChild(document.createElement("br")); li.appendChild(b);
+    }
+    ul.appendChild(li);
+  }
+}
+
+function izberi(id) {
+  izbran = id;
+  const o = osumljenci.find(x => x.id === id);
+  $("#naslovPogovora").textContent = `Zaslišanje: ${o.ime} (${o.vloga})`;
+  $("#vnos").disabled = $("#gPoslji").disabled = false;
+  $("#vnos").placeholder = `Vprašajte ${o.ime.split(" ")[0]} …`;
+  if (!pogovori[id]) dodaj(id, "sistem", `${o.ime} sede nasproti vas.`);
+  izrisiOsumljence(); izrisiPogovor(); izrisiBelezko(); $("#vnos").focus();
+}
+
+function zakleni(z) { $("#vnos").disabled = $("#gPoslji").disabled = z; }
+
+function obdelaj(oseba, d) {
+  if (d.napaka) { dodaj(oseba, "napaka", d.napaka); return; }
+  dodaj(oseba, "ona", d.odgovor);
+  for (const n of d.novi) dodaj(oseba, "namig", n.besedilo);
+  belezka = d.belezka; izrisiBelezko();
+}
+
+async function poslji(e) {
+  e.preventDefault();
+  const besedilo = $("#vnos").value.trim();
+  if (!besedilo || !izbran) return;
+  const oseba = izbran;
+  $("#vnos").value = ""; dodaj(oseba, "jaz", besedilo); zakleni(true);
+  dodaj(oseba, "sistem tipkam", "… razmišlja …");
+  const d = await klic("/api/vprasaj", { oseba, besedilo });
+  pogovori[oseba].pop();
+  obdelaj(oseba, d); zakleni(false); $("#vnos").focus();
+}
+
+async function pokazi(n) {
+  const oseba = izbran;
+  dodaj(oseba, "jaz", `[Pokažete dokaz] ${n.besedilo}`); zakleni(true);
+  dodaj(oseba, "sistem tipkam", "… razmišlja …");
+  const d = await klic("/api/pokazi", { oseba, namig: n.id });
+  pogovori[oseba].pop();
+  obdelaj(oseba, d); zakleni(false);
+}
+
+function odpriObtozbo() {
+  const el = $("#izbiraObtozbe"); el.innerHTML = "";
+  for (const o of osumljenci) {
+    const b = document.createElement("button");
+    b.className = "sek"; b.style.margin = "4px"; b.textContent = o.ime;
+    b.onclick = () => obtozi(o.id);
+    el.appendChild(b);
+  }
+  $("#dObtozba").showModal();
+}
+
+async function obtozi(id) {
+  $("#dObtozba").close();
+  const d = await klic("/api/obtozi", { oseba: id });
+  const r = $("#rezultat");
+  if (d.napaka) { r.innerHTML = `<p>${d.napaka}</p>`; }
+  else {
+    r.innerHTML = `<h2 style="color:${d.pravilno ? "var(--ok)" : "var(--danger)"}">${d.pravilno ? "Primer rešen" : "Napačna obtožba"}</h2>`
+      + `<p>Krivec: <b>${d.krivec}</b></p><p>${d.razplet}</p>`
+      + `<p class="prazno">Našli ste ${d.kljucnih_najdenih} od ${d.kljucnih_vseh} ključnih dokazov${d.priznanje ? " in izsilili priznanje" : ""}.</p>`;
+  }
+  $("#dRezultat").showModal();
+}
+
+async function novaIgra() {
+  const r = await fetch("/api/nova-igra", { method: "POST" }).then(x => x.json()).catch(() => null);
+  if (!r) { alert("Strežnik se ne odziva. Je igra zagnana?"); return; }
+  igra = r.igra; osumljenci = r.osumljenci; izbran = null; belezka = [];
+  for (const k in pogovori) delete pogovori[k];
+  $("#naslovPogovora").textContent = r.naslov;
+  $("#sporocila").innerHTML = ""; const u = document.createElement("div");
+  u.className = "msg sistem"; u.style.fontSize = "16px"; u.textContent = r.uvod; $("#sporocila").appendChild(u);
+  zakleni(true); $("#vnos").placeholder = "Izberite osumljenca levo …";
+  izrisiOsumljence(); izrisiBelezko();
+}
+
+$("#obrazec").onsubmit = poslji;
+$("#gNova").onclick = () => { if (!igra || confirm("Začnem novo igro?")) novaIgra(); };
+$("#gObtozi").onclick = () => igra && odpriObtozbo();
+novaIgra();
+</script>
+</body>
+</html>
