@@ -47,13 +47,33 @@ def _kljuc(ime: str) -> str:
     return "" if kljuc in ("", "vas-kljuc-tukaj") else kljuc
 
 
-def ponudnik() -> str | None:
-    """Kateri AI igra osumljence: "grok" (xAI), "anthropic" (Claude) ali None (ni ključa).
+# Ponudniki z OpenAI-združljivim API-jem: ključ, naslov, privzeti model, nastavitev modela.
+OPENAI_ZDRUZLJIVI = {
+    "gemini": {
+        "kljuc": "GEMINI_API_KEY",
+        "naslov": "https://generativelanguage.googleapis.com/v1beta/openai/",
+        "model": "gemini-flash-latest",
+        "model_env": "GEMINI_MODEL",
+        "dodatno": {"reasoning_effort": "low"},   # hitrejši kratki odgovori
+    },
+    "grok": {
+        "kljuc": "XAI_API_KEY",
+        "naslov": "https://api.x.ai/v1",
+        "model": "grok-4.7",
+        "model_env": "XAI_MODEL",
+        "dodatno": {},
+    },
+}
 
-    Grok ima prednost, če sta nastavljena oba ključa.
+
+def ponudnik() -> str | None:
+    """Kateri AI igra osumljence: "gemini", "grok", "anthropic" ali None (ni ključa).
+
+    Če je nastavljenih več ključev, velja ta vrstni red.
     """
-    if _kljuc("XAI_API_KEY"):
-        return "grok"
+    for ime, nast in OPENAI_ZDRUZLJIVI.items():
+        if _kljuc(nast["kljuc"]):
+            return ime
     if _kljuc("ANTHROPIC_API_KEY"):
         return "anthropic"
     return None
@@ -92,12 +112,12 @@ def odgovori(igra: Igra, oseba: str, sporocilo: str) -> tuple[str, list[str]]:
         raise AINapaka("Vprašanje je prazno. Napišite, kaj želite vprašati.")
 
     izbran = ponudnik()
-    if izbran == "grok":
-        besedilo, predlagani = _grok(igra, oseba, sporocilo)
+    if izbran in OPENAI_ZDRUZLJIVI:
+        besedilo, predlagani = _openai_zdruzljiv(izbran, igra, oseba, sporocilo)
     elif izbran == "anthropic":
         besedilo, predlagani = _anthropic(igra, oseba, sporocilo)
     else:
-        raise AINapaka("AI ni nastavljen: na strežniku manjka XAI_API_KEY. Obvestite skrbnika igre.")
+        raise AINapaka("AI ni nastavljen: na strežniku manjka GEMINI_API_KEY. Obvestite skrbnika igre.")
 
     # Zgodovino posodobimo šele, ko je odgovor uspešen.
     igra.zgodovina[oseba].append({"role": "user", "content": sporocilo})
@@ -170,55 +190,70 @@ def _anthropic(igra: Igra, oseba: str, sporocilo: str) -> tuple[str, list[str]]:
     return _razcleni(surovo, ime)
 
 
-# --- xAI Grok (OpenAI-združljiv API) ---------------------------------------------
-_grok_odjemalec = None
+def _opomba_ponovitve(igra: Igra, oseba: str, sporocilo: str) -> str:
+    """Če detektiv ponovi vprašanje, modelu to povemo, da ne odgovori dobesedno enako."""
+    prejsnja = [m["content"].strip().lower() for m in igra.zgodovina[oseba] if m["role"] == "user"]
+    if sporocilo.strip().lower() in prejsnja:
+        return ("\n\n[Opomba za vlogo: detektiv te to sprašuje že ponovno. Odgovori z drugimi besedami "
+                "in pokaži, kako se zaradi tega počutiš.]")
+    return ""
 
 
-def _dobi_grok_odjemalca():
-    global _grok_odjemalec
-    if _grok_odjemalec is None:
+# --- Gemini / Grok (OpenAI-združljiv API) ----------------------------------------
+_odjemalci: dict = {}
+
+
+def _dobi_openai_odjemalca(izbran: str):
+    if izbran not in _odjemalci:
         from openai import OpenAI
-        _grok_odjemalec = OpenAI(
-            api_key=_kljuc("XAI_API_KEY"),
-            base_url=os.getenv("XAI_BASE_URL", "https://api.x.ai/v1"),
-            timeout=float(os.getenv("AI_CASOVNA_OMEJITEV", "30")),
-            max_retries=1,
+        nast = OPENAI_ZDRUZLJIVI[izbran]
+        _odjemalci[izbran] = OpenAI(
+            api_key=_kljuc(nast["kljuc"]),
+            base_url=nast["naslov"],
+            timeout=float(os.getenv("AI_CASOVNA_OMEJITEV", "60")),
+            max_retries=3,   # brezplačni paketi občasno vrnejo 503 (preobremenjeno)
         )
-    return _grok_odjemalec
+    return _odjemalci[izbran]
 
 
-def _grok(igra: Igra, oseba: str, sporocilo: str) -> tuple[str, list[str]]:
+def _openai_zdruzljiv(izbran: str, igra: Igra, oseba: str, sporocilo: str) -> tuple[str, list[str]]:
     import openai
 
+    nast = OPENAI_ZDRUZLJIVI[izbran]
     ime = OSUMLJENCI[oseba]["ime"]
+    napacen_kljuc = f"Ključ za AI ({nast['kljuc']}) ni veljaven. Obvestite skrbnika igre."
     sporocila = (
         [{"role": "system", "content": sestavi_navodila(igra, oseba)}]
         + igra.zgodovina[oseba]
-        + [{"role": "user", "content": sporocilo}]
+        + [{"role": "user", "content": sporocilo + _opomba_ponovitve(igra, oseba, sporocilo)}]
     )
     try:
-        odziv = _dobi_grok_odjemalca().chat.completions.create(
-            model=os.getenv("XAI_MODEL", "grok-4.7"),
+        odziv = _dobi_openai_odjemalca(izbran).chat.completions.create(
+            model=os.getenv(nast["model_env"], nast["model"]),
             messages=sporocila,
             max_tokens=4000,
             response_format={
                 "type": "json_schema",
                 "json_schema": {"name": "odgovor_osumljenca", "schema": SHEMA_ODGOVORA, "strict": True},
             },
+            **nast["dodatno"],
         )
     except openai.APITimeoutError:
         raise AINapaka(f"{ime} predolgo razmišlja (AI se ni odzval pravočasno). Poskusite znova.")
     except openai.APIConnectionError:
         raise AINapaka("Ni povezave z AI storitvijo. Preverite internetno povezavo in poskusite znova.")
     except openai.AuthenticationError:
-        raise AINapaka("Ključ za AI (XAI_API_KEY) ni veljaven. Obvestite skrbnika igre.")
+        raise AINapaka(napacen_kljuc)
     except openai.PermissionDeniedError:
         raise AINapaka("Račun za AI nima dostopa ali kredita. Obvestite skrbnika igre.")
     except openai.RateLimitError:
-        raise AINapaka("Preveč vprašanj naenkrat. Počakajte pol minute in poskusite znova.")
+        raise AINapaka("Preveč vprašanj naenkrat (dosežena omejitev brezplačnega paketa). "
+                       "Počakajte minuto in poskusite znova.")
     except openai.APIStatusError as e:
-        if e.status_code == 400 and "api key" in f"{e.message} {e.body}".lower():   # xAI vrne 400 za napačen ključ
-            raise AINapaka("Ključ za AI (XAI_API_KEY) ni veljaven. Obvestite skrbnika igre.")
+        if e.status_code == 400 and "api key" in f"{e.message} {e.body}".lower():   # Gemini in xAI vrneta 400
+            raise AINapaka(napacen_kljuc)
+        if e.status_code in (502, 503, 504):
+            raise AINapaka(f"{ime} se ravno ne more zbrati (AI je preobremenjen). Poskusite čez nekaj sekund.")
         raise AINapaka(f"AI storitev trenutno ne deluje (napaka {e.status_code}). Poskusite čez nekaj minut.")
 
     if not odziv.choices:

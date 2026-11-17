@@ -98,7 +98,7 @@ def obtozi():
 
 
 if not ai_nastavljen():
-    app.logger.warning("XAI_API_KEY ni nastavljen – osumljenci ne bodo mogli odgovarjati.")
+    app.logger.warning("GEMINI_API_KEY ni nastavljen – osumljenci ne bodo mogli odgovarjati.")
 
 if __name__ == "__main__":
     import os

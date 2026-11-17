@@ -20,10 +20,10 @@ python -m venv .venv
 pip install -r requirements.txt
 copy .env.example .env        # Linux/macOS: cp .env.example .env
 ```
-V `.env` vpišite svoj `XAI_API_KEY` (ključ za Grok, https://console.x.ai). Vse osumljence igra AI (privzeto Grok `grok-4.7`, model spremenite z `XAI_MODEL`), zato igra brez ključa ne deluje – vmesnik takrat pokaže rdeč trak »AI ni povezan«.
+V `.env` vpišite svoj `GEMINI_API_KEY` (brezplačen ključ: https://aistudio.google.com/apikey). Vse osumljence igra AI (privzeto Google Gemini `gemini-flash-latest`, model spremenite z `GEMINI_MODEL`; podprta sta tudi Grok z `XAI_API_KEY` in Claude z `ANTHROPIC_API_KEY`), zato igra brez ključa ne deluje – vmesnik takrat pokaže rdeč trak »AI ni povezan«.
 
 ### Objava na Renderju (pravi AI)
-V Render → *Environment* dodajte `XAI_API_KEY` (spremenljivko `AI_PONUDNIK` lahko izbrišete, ni več v uporabi). Nato *Manual Deploy*. Če je na strani rdeč trak »AI ni povezan«, ključ ni nastavljen.
+V Render → *Environment* dodajte `GEMINI_API_KEY` (spremenljivko `AI_PONUDNIK` lahko izbrišete, ni več v uporabi). Nato *Manual Deploy*. Če je na strani rdeč trak »AI ni povezan«, ključ ni nastavljen.
 
 ```bash
 python app.py
@@ -37,7 +37,7 @@ app.py               Flask strežnik in API (/api/nova-igra, /api/vprasaj, /api/
 igra/zgodba.py       RESNICA primera: osumljenci, dokazi, krivec (AI je nikoli ne dobi v celoti)
 igra/stanje.py       stanje igre: beležka, pokazani dokazi, odklepanje skrivnosti, obtožba
 igra/prompti.py      sestavi navodila (system prompt) samo iz podatkov ene osebe
-igra/ai.py           klic Grok (xAI) ali Claude API, strukturiran JSON odgovor, obravnava napak
+igra/ai.py           klic Gemini / Grok (OpenAI-združljiv API) ali Claude API, strukturiran JSON odgovor, obravnava napak
 templates/index.html spletni vmesnik (HTML + JS, brez knjižnic)
 docs/                specifikacija, priročnik, skice
 porocila/            dnevna in tedenska poročila, dnevnik uporabe AI
@@ -47,7 +47,7 @@ testi/               testni primeri in rezultati testiranja z uporabniki
 ## Kako deluje AI del
 1. `prompti.sestavi_navodila()` sestavi navodila za izbranega osumljenca: značaj, alibi, dejstva z oznakami (`[N3]`) in namig, da nekaj prikriva. Kdo je krivec, ne piše nikjer.
 2. Ko igralec osumljencu pokaže vse dokaze, ki jih skrivnost zahteva (`odklene`), `Igra.odklenjene_skrivnosti()` vrne to skrivnost. Šele takrat gre njena resnica v navodila.
-3. Model vrne JSON po shemi (Grok: `response_format` z `json_schema`; Claude: `output_config.format`): `{"odgovor": "...", "razkriti_namigi": ["N3"]}`.
+3. Model vrne JSON po shemi (Gemini in Grok: `response_format` z `json_schema`; Claude: `output_config.format`): `{"odgovor": "...", "razkriti_namigi": ["N3"]}`.
 4. `Igra.dodaj_namige()` sprejme samo namige, ki jih ta oseba v tem trenutku sme razkriti. Če si model kaj izmisli, ne pride v beležko.
 
 Nastavitve klica: `effort: "low"` (kratki pogovorni odgovori), časovna omejitev iz `AI_CASOVNA_OMEJITEV`, 1 ponovni poskus. Pri modelih, ki to podpirajo, je vklopljen strežniški nadomestni model ob zavrnitvi (`fallbacks: "default"`). Izklopite ga z `AI_NADOMESTNI_MODEL=0`.
