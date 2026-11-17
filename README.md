@@ -26,6 +26,7 @@ V `.env` vpišite svoj `ANTHROPIC_API_KEY`. Če ključa nimate, nastavite `AI_PO
 python app.py
 ```
 Nato odprite http://localhost:5000.
+Public domena: https://kdo-je-kriv.onrender.com/
 
 ## Struktura
 ```
