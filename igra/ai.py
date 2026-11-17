@@ -2,7 +2,6 @@
 
 import json
 import os
-import random
 import re
 
 from .prompti import sestavi_navodila
@@ -42,20 +41,10 @@ def odstrani_osebne_podatke(besedilo: str) -> str:
     return besedilo
 
 
-# --- izbira načina --------------------------------------------------------------
-def nacin() -> str:
-    """Vrne "anthropic" (pravi AI) ali "demo".
-
-    AI_PONUDNIK=auto (privzeto): pravi AI, če je nastavljen ANTHROPIC_API_KEY, sicer demo.
-    AI_PONUDNIK=anthropic: vedno pravi AI (brez ključa igralec dobi jasno napako).
-    AI_PONUDNIK=demo: vedno demo.
-    """
-    ponudnik = os.getenv("AI_PONUDNIK", "auto").strip().lower()
-    if ponudnik == "demo":
-        return "demo"
-    if ponudnik == "auto" and not _ima_kljuc():
-        return "demo"
-    return "anthropic"
+# --- stanje povezave ------------------------------------------------------------
+def ai_nastavljen() -> bool:
+    """Ali ima strežnik ključ za AI. Brez njega osumljenci ne morejo odgovarjati."""
+    return _ima_kljuc()
 
 
 def _ima_kljuc() -> bool:
@@ -70,10 +59,7 @@ def odgovori(igra: Igra, oseba: str, sporocilo: str) -> tuple[str, list[str]]:
     if not sporocilo:
         raise AINapaka("Vprašanje je prazno. Napišite, kaj želite vprašati.")
 
-    if nacin() == "demo":
-        besedilo, predlagani = _demo(igra, oseba, sporocilo)
-    else:
-        besedilo, predlagani = _anthropic(igra, oseba, sporocilo)
+    besedilo, predlagani = _anthropic(igra, oseba, sporocilo)
 
     # Zgodovino posodobimo šele, ko je odgovor uspešen.
     igra.zgodovina[oseba].append({"role": "user", "content": sporocilo})
@@ -91,8 +77,8 @@ def _dobi_odjemalca():
     if _odjemalec is None:
         import anthropic
         if not _ima_kljuc():
-            raise AINapaka("AI ni nastavljen (manjka ključ v datoteki .env). "
-                           "Prosite skrbnika ali zaženite igro v načinu »demo«.")
+            raise AINapaka("AI ni nastavljen: na strežniku manjka ANTHROPIC_API_KEY. "
+                           "Obvestite skrbnika igre.")
         _odjemalec = anthropic.Anthropic(
             timeout=float(os.getenv("AI_CASOVNA_OMEJITEV", "30")),
             max_retries=1,
@@ -156,43 +142,3 @@ def _anthropic(igra: Igra, oseba: str, sporocilo: str) -> tuple[str, list[str]]:
     if not besedilo:
         raise AINapaka(f"{ime} ne ve, kaj bi rekel. Poskusite z drugim vprašanjem.")
     return besedilo, namigi
-
-
-# --- način brez AI (za testiranje in predstavitve brez interneta) ---------------
-# Demo ni pravi AI: odgovor sestavi iz podatkov o osebi. Da ni vedno enak,
-# izbere dejstvo, ki se najbolj ujema z vprašanjem, in naključen uvod.
-_UVODI = {
-    "bojan": ["Ah, spet vprašanja …", "Poslušajte, jaz delam, ne čvekam.", "No, če ravno hočete vedet' …"],
-    "mojca": ["Če dovolite, bom natančna.", "To je pravzaprav preprosto.", "Upam, da me ne sumničite."],
-    "tim": ["Ej, čakte …", "Okej, okej, ni panike …", "Res nisem nič naredil, ampak …"],
-    "vesna": ["Oh, kar sedite.", "Saj vam rada pomagam.", "Hm, naj pomislim …"],
-}
-_IZMIKI = [
-    "Na to res ne vem, kaj bi rekel.",
-    "Tega ne vem. Vprašajte raje kaj drugega.",
-    "O tem nimam kaj povedati.",
-]
-
-
-def _besede(besedilo: str) -> set[str]:
-    return {b[:5] for b in re.findall(r"\w+", besedilo.lower()) if len(b) > 3}
-
-
-def _demo(igra: Igra, oseba: str, sporocilo: str = "") -> tuple[str, list[str]]:
-    o = OSUMLJENCI[oseba]
-    uvod = random.choice(_UVODI.get(oseba, ["Hm."]))
-
-    for s in igra.odklenjene_skrivnosti(oseba):
-        if s["nov_namig"] and s["nov_namig"] not in igra.najdeni:
-            return f"(demo) Prav, priznam … {s['resnica']}", [s["nov_namig"]]
-
-    vprasanje = _besede(sporocilo)
-    kandidati = [(len(vprasanje & _besede(b)), nid, b) for nid, b in o["dejstva"].items()]
-    kandidati.sort(key=lambda k: (-k[0], k[1] in igra.najdeni, random.random()))
-    if kandidati and (kandidati[0][0] > 0 or kandidati[0][1] not in igra.najdeni):
-        _, nid, besedilo = kandidati[0]
-        return f"(demo) {uvod} {besedilo}", [nid]
-
-    if random.random() < 0.5:
-        return f"(demo) {uvod} {o['alibi']}", []
-    return f"(demo) {random.choice(_IZMIKI)}", []

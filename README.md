@@ -20,10 +20,10 @@ python -m venv .venv
 pip install -r requirements.txt
 copy .env.example .env        # Linux/macOS: cp .env.example .env
 ```
-V `.env` vpišite svoj `ANTHROPIC_API_KEY`. Brez ključa igra samodejno teče v demo načinu (`AI_PONUDNIK=auto`), kar vmesnik pokaže z rdečim trakom.
+V `.env` vpišite svoj `ANTHROPIC_API_KEY`. Vse osumljence igra AI (Claude), zato igra brez ključa ne deluje – vmesnik takrat pokaže rdeč trak »AI ni povezan«.
 
 ### Objava na Renderju (pravi AI)
-V Render → *Environment* nastavite `ANTHROPIC_API_KEY` in **odstranite** `AI_PONUDNIK=demo` (ali ga nastavite na `auto`/`anthropic`). Nato *Manual Deploy*. Če je na strani rdeč trak »Demo način«, ključ ni nastavljen.
+V Render → *Environment* nastavite `ANTHROPIC_API_KEY` (spremenljivko `AI_PONUDNIK` lahko izbrišete, ni več v uporabi). Nato *Manual Deploy*. Če je na strani rdeč trak »AI ni povezan«, ključ ni nastavljen.
 
 ```bash
 python app.py
@@ -37,7 +37,7 @@ app.py               Flask strežnik in API (/api/nova-igra, /api/vprasaj, /api/
 igra/zgodba.py       RESNICA primera: osumljenci, dokazi, krivec (AI je nikoli ne dobi v celoti)
 igra/stanje.py       stanje igre: beležka, pokazani dokazi, odklepanje skrivnosti, obtožba
 igra/prompti.py      sestavi navodila (system prompt) samo iz podatkov ene osebe
-igra/ai.py           klic Claude API, strukturiran JSON odgovor, obravnava napak, demo način
+igra/ai.py           klic Claude API, strukturiran JSON odgovor, obravnava napak
 templates/index.html spletni vmesnik (HTML + JS, brez knjižnic)
 docs/                specifikacija, priročnik, skice
 porocila/            dnevna in tedenska poročila, dnevnik uporabe AI

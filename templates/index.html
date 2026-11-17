@@ -45,7 +45,7 @@
   dialog { background:var(--panel); color:var(--text); border:1px solid var(--line); border-radius:12px; max-width:520px; }
   dialog::backdrop { background:rgba(0,0,0,.6); }
   .tipkam { color:var(--muted); font-style:italic; }
-  #demoTrak { display:none; background:#3a2420; color:#f3c2b6; font:13px system-ui, sans-serif; padding:8px 20px; border-bottom:1px solid var(--line); }
+  #aiTrak { display:none; background:#3a2420; color:#f3c2b6; font:13px system-ui, sans-serif; padding:8px 20px; border-bottom:1px solid var(--line); }
   @media (max-width: 900px) { main { grid-template-columns:1fr; height:auto; } #pogovor { min-height:60vh; } }
 </style>
 </head>
@@ -56,7 +56,7 @@
   <button class="sek" id="gNova">Nova igra</button>
   <button class="nev" id="gObtozi">Obtoži</button>
 </header>
-<div id="demoTrak">Demo način: AI ni povezan (na strežniku manjka ANTHROPIC_API_KEY), zato so odgovori vnaprej pripravljeni.</div>
+<div id="aiTrak">AI ni povezan: na strežniku manjka ANTHROPIC_API_KEY, zato osumljenci ne morejo odgovarjati.</div>
 <main>
   <section>
     <h2>Osumljenci</h2>
@@ -210,7 +210,7 @@ async function obtozi(id) {
 async function novaIgra() {
   const r = await fetch("/api/nova-igra", { method: "POST" }).then(x => x.json()).catch(() => null);
   if (!r) { alert("Strežnik se ne odziva. Je igra zagnana?"); return; }
-  $("#demoTrak").style.display = r.nacin === "demo" ? "block" : "none";
+  $("#aiTrak").style.display = r.ai ? "none" : "block";
   igra = r.igra; osumljenci = r.osumljenci; izbran = null; belezka = [];
   for (const k in pogovori) delete pogovori[k];
   $("#naslovPogovora").textContent = r.naslov;

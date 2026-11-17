@@ -31,4 +31,4 @@ Jezikovni model **Anthropic Claude** prek API-ja (Python SDK `anthropic`). Za pr
 ```
 
 ## Varnost in zasebnost
-API ključ je v datoteki `.env` (ni na GitHubu). Igra ne snema glasu ali slik. Pred pošiljanjem v AI odstrani e-pošto, telefonske številke in EMŠO. Na zaslonu je ves čas opozorilo, da se AI lahko moti. Ob izpadu AI igra ne pade, ampak pokaže prijazno sporočilo. Za predstavitve brez interneta ima način `demo`.
+API ključ je v datoteki `.env` (ni na GitHubu). Igra ne snema glasu ali slik. Pred pošiljanjem v AI odstrani e-pošto, telefonske številke in EMŠO. Na zaslonu je ves čas opozorilo, da se AI lahko moti. Ob izpadu AI igra ne pade, ampak pokaže prijazno sporočilo.
