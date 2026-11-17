@@ -20,7 +20,7 @@ python -m venv .venv
 pip install -r requirements.txt
 copy .env.example .env        # Linux/macOS: cp .env.example .env
 ```
-V `.env` vpišite svoj `GEMINI_API_KEY` (brezplačen ključ: https://aistudio.google.com/apikey). Vse osumljence igra AI (privzeto Google Gemini `gemini-flash-latest`, model spremenite z `GEMINI_MODEL`; podprta sta tudi Grok z `XAI_API_KEY` in Claude z `ANTHROPIC_API_KEY`), zato igra brez ključa ne deluje – vmesnik takrat pokaže rdeč trak »AI ni povezan«.
+V `.env` vpišite svoj `GEMINI_API_KEY` (brezplačen ključ: https://aistudio.google.com/apikey). Vse osumljence igra AI (privzeto Google Gemini, seznam modelov v `GEMINI_MODEL`; podprta sta tudi Grok z `XAI_API_KEY` in Claude z `ANTHROPIC_API_KEY`), zato igra brez ključa ne deluje – vmesnik takrat pokaže rdeč trak »AI ni povezan«.
 
 ### Objava na Renderju (pravi AI)
 V Render → *Environment* dodajte `GEMINI_API_KEY` (spremenljivko `AI_PONUDNIK` lahko izbrišete, ni več v uporabi). Nato *Manual Deploy*. Če je na strani rdeč trak »AI ni povezan«, ključ ni nastavljen.
@@ -34,7 +34,9 @@ Public domena: https://kdo-je-kriv.onrender.com/
 ## Struktura
 ```
 app.py               Flask strežnik in API (/api/nova-igra, /api/vprasaj, /api/pokazi, /api/obtozi)
-igra/zgodba.py       RESNICA primera: osumljenci, dokazi, krivec (AI je nikoli ne dobi v celoti)
+igra/zgodba.py       klasični primer »Izginula ovojnica« (osumljenci, dokazi, krivec)
+igra/generator.py    AI za vsako igro izmisli nov primer; koda preveri, da je rešljiv
+gunicorn.conf.py     nastavitve za Render (daljša časovna omejitev za ustvarjanje primera)
 igra/stanje.py       stanje igre: beležka, pokazani dokazi, odklepanje skrivnosti, obtožba
 igra/prompti.py      sestavi navodila (system prompt) samo iz podatkov ene osebe
 igra/ai.py           klic Gemini / Grok (OpenAI-združljiv API) ali Claude API, strukturiran JSON odgovor, obravnava napak
@@ -65,5 +67,12 @@ Vsaka napaka (časovna omejitev, ni povezave, napačen ključ, preveč zahtev, z
 - Vsaka sprememba gre v `main` prek pull requesta, ki ga pregleda še en član ekipe.
 - Napake in naloge beležimo v GitHub Issues.
 
-## Pisanje nove zgodbe
-Zgodbo spreminjate samo v `igra/zgodba.py`. Vsak namig v `NAMIGI` mora imeti točno enega lastnika: ali ga oseba pove prosto (v `dejstva`) ali je `nov_namig` neke skrivnosti. Vsaka skrivnost v `odklene` potrebuje namige, ki jih igralec lahko dobi pri **drugih** osebah, sicer igre ni mogoče rešiti.
+## Nov primer v vsaki igri
+Gumb **Nov primer** od AI zahteva nov primer (naključen kraj in dogodek iz `igra/generator.py`). AI vrne JSON po shemi `SHEMA_PRIMERA`, `_preveri()` pa ga preveri: 4 osumljenci, vsak namig ima enega lastnika, skrivnosti se odklepajo z namigi drugih oseb, krivčevo priznanje je dosegljivo (koda simulira igralca). Če primer ni veljaven, AI dobi razlog in ga popravi (do 3 poskusi). Če ne uspe, se igra klasični primer z opozorilom. Gumb **Klasični primer** ali `ZGODBA=privzeta` v `.env` vedno igra »Izginula ovojnica«.
+
+Celoten primer (tudi krivec) ostane na strežniku; vsak osumljenec v pogovoru dobi le svoje podatke.
+
+**Omejitve brezplačnega Gemini paketa:** približno 20 zahtev na dan za vsak model. Zato `GEMINI_MODEL` vsebuje seznam modelov, ločen z vejicami: ko enemu poteče kvota ali je preobremenjen, igra uporabi naslednjega.
+
+## Pisanje klasične zgodbe
+Klasični primer spreminjate v `igra/zgodba.py`. Vsak namig v `NAMIGI` mora imeti točno enega lastnika: ali ga oseba pove prosto (v `dejstva`) ali je `nov_namig` neke skrivnosti. Vsaka skrivnost v `odklene` potrebuje namige, ki jih igralec lahko dobi pri **drugih** osebah, sicer igre ni mogoče rešiti.

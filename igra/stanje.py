@@ -1,29 +1,37 @@
-"""Stanje ene igre: kaj je igralec odkril, kaj je komu pokazal, zgodovina pogovorov."""
+"""Stanje ene igre: kateri primer se igra, kaj je igralec odkril, kaj je komu pokazal, zgodovina."""
 
 import uuid
 
-from .zgodba import NAMIGI, OSUMLJENCI, PRIMER
+from .zgodba import privzeta_zgodba
 
 
 class Igra:
-    def __init__(self):
+    def __init__(self, zgodba: dict | None = None):
+        """`zgodba` ima ključe primer, namigi, osumljenci (glej igra/zgodba.py).
+
+        Brez nje se igra privzeti primer »Izginula ovojnica«.
+        """
+        zgodba = zgodba or privzeta_zgodba()
         self.id = uuid.uuid4().hex
-        self.najdeni: list[str] = []                       # ID-ji namigov v beležki
-        self.pokazani = {k: set() for k in OSUMLJENCI}     # kaj je kdo že videl
-        self.zgodovina = {k: [] for k in OSUMLJENCI}       # sporočila za AI
+        self.primer: dict = zgodba["primer"]
+        self.namigi: dict[str, str] = zgodba["namigi"]
+        self.osumljenci: dict[str, dict] = zgodba["osumljenci"]
+        self.najdeni: list[str] = []                            # ID-ji namigov v beležki
+        self.pokazani = {k: set() for k in self.osumljenci}     # kaj je kdo že videl
+        self.zgodovina = {k: [] for k in self.osumljenci}       # sporočila za AI
         self.konec = False
 
     # --- skrivnosti ---------------------------------------------------------
     def odklenjene_skrivnosti(self, oseba: str) -> list[dict]:
         """Skrivnosti, za katere je igralec tej osebi pokazal VSE potrebne dokaze."""
         return [
-            s for s in OSUMLJENCI[oseba]["skrivnosti"]
+            s for s in self.osumljenci[oseba]["skrivnosti"]
             if set(s["odklene"]) <= self.pokazani[oseba]
         ]
 
     def dovoljeni_namigi(self, oseba: str) -> set[str]:
         """Namigi, ki jih oseba v tem trenutku SME razkriti."""
-        dovoljeni = set(OSUMLJENCI[oseba]["dejstva"])
+        dovoljeni = set(self.osumljenci[oseba]["dejstva"])
         for s in self.odklenjene_skrivnosti(oseba):
             if s["nov_namig"]:
                 dovoljeni.add(s["nov_namig"])
@@ -40,18 +48,25 @@ class Igra:
         return novi
 
     def belezka(self) -> list[dict]:
-        return [{"id": n, "besedilo": NAMIGI[n]} for n in self.najdeni]
+        return [{"id": n, "besedilo": self.namigi[n]} for n in self.najdeni]
 
     # --- obtožba ------------------------------------------------------------
+    def priznanje_krivca(self) -> str | None:
+        """Namig, ki ga krivec razkrije, ko prizna (če ga ima)."""
+        for s in self.osumljenci[self.primer["krivec"]]["skrivnosti"]:
+            if s["nov_namig"]:
+                return s["nov_namig"]
+        return None
+
     def obtozi(self, oseba: str) -> dict:
         self.konec = True
-        pravilno = oseba == PRIMER["krivec"]
-        najdeni_kljucni = [n for n in PRIMER["kljucni_namigi"] if n in self.najdeni]
+        krivec = self.primer["krivec"]
+        najdeni_kljucni = [n for n in self.primer["kljucni_namigi"] if n in self.najdeni]
         return {
-            "pravilno": pravilno,
-            "krivec": OSUMLJENCI[PRIMER["krivec"]]["ime"],
-            "razplet": PRIMER["razplet"],
+            "pravilno": oseba == krivec,
+            "krivec": self.osumljenci[krivec]["ime"],
+            "razplet": self.primer["razplet"],
             "kljucnih_najdenih": len(najdeni_kljucni),
-            "kljucnih_vseh": len(PRIMER["kljucni_namigi"]),
-            "priznanje": "N9" in self.najdeni,
+            "kljucnih_vseh": len(self.primer["kljucni_namigi"]),
+            "priznanje": self.priznanje_krivca() in self.najdeni,
         }

@@ -9,6 +9,9 @@ Zato AI ne more pomotoma izdati rešitve: dokler ni odklenjena, je preprosto ne 
 
 PRIMER = {
     "naslov": "Izginula ovojnica",
+    "kraj": "srednja šola",
+    "dogodek": "V četrtek je iz zbornice izginila zapečatena ovojnica s pisnimi nalogami za maturo. "
+               "Prof. Lenarčič jo je ob 13.00 pustila v zbornici, ob 14.00 je ni bilo več.",
     "uvod": (
         "Četrtek, 14.05. V zbornici je izginila zapečatena ovojnica s pisnimi "
         "nalogami za šolsko maturo. Prof. Lenarčič jo je ob 13.00 pustila v zbornici, "
@@ -127,3 +130,9 @@ OSUMLJENCI = {
         ],
     },
 }
+
+
+def privzeta_zgodba() -> dict:
+    """Svež izvod privzetega primera (vsaka igra dobi svojega)."""
+    import copy
+    return copy.deepcopy({"primer": PRIMER, "namigi": NAMIGI, "osumljenci": OSUMLJENCI})

@@ -5,13 +5,14 @@ Resnica skrivnosti se doda šele, ko je skrivnost odklenjena (glej Igra.odklenje
 """
 
 from .stanje import Igra
-from .zgodba import NAMIGI, OSUMLJENCI
 
 
 def sestavi_navodila(igra: Igra, oseba: str) -> str:
-    o = OSUMLJENCI[oseba]
+    o = igra.osumljenci[oseba]
     vrstice = [
-        f"Igraš vlogo v detektivski igri za srednješolce. Si {o['ime']}, {o['vloga']} na srednji šoli.",
+        f"Igraš vlogo v detektivski igri za srednješolce. Si {o['ime']}, {o['vloga']}. "
+        f"Kraj dogajanja: {igra.primer['kraj']}.",
+        f"Kaj se je zgodilo (to ve vsak): {igra.primer['dogodek']}",
         f"Značaj: {o['znacaj']}",
         "",
         "PRAVILA:",
@@ -48,7 +49,7 @@ def sestavi_navodila(igra: Igra, oseba: str) -> str:
     if igra.pokazani[oseba]:
         vrstice += ["", "DOKAZI, KI TI JIH JE DETEKTIV ŽE POKAZAL:"]
         for nid in sorted(igra.pokazani[oseba]):
-            vrstice.append(f"- {NAMIGI[nid]}")
+            vrstice.append(f"- {igra.namigi[nid]}")
 
     vrstice += [
         "",

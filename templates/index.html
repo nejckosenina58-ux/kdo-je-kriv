@@ -53,7 +53,8 @@
 <header>
   <h1>Kdo je kriv?</h1>
   <div class="opozorilo">Osumljence igra umetna inteligenca, ki se lahko moti ali si kaj izmisli. Ne vpisujte osebnih podatkov – vprašanja se pošiljajo AI storitvi.</div>
-  <button class="sek" id="gNova">Nova igra</button>
+  <button class="sek" id="gKlasicna" title="Igraj vedno enak primer »Izginula ovojnica«">Klasični primer</button>
+  <button class="sek" id="gNova">Nov primer</button>
   <button class="nev" id="gObtozi">Obtoži</button>
 </header>
 <div id="aiTrak">AI ni povezan: na strežniku manjka GEMINI_API_KEY, zato osumljenci ne morejo odgovarjati.</div>
@@ -82,7 +83,7 @@
   <div id="izbiraObtozbe"></div>
   <p><button class="sek" onclick="dObtozba.close()">Prekliči</button></p>
 </dialog>
-<dialog id="dRezultat"><div id="rezultat"></div><p><button onclick="location.reload()">Igraj znova</button></p></dialog>
+<dialog id="dRezultat"><div id="rezultat"></div><p><button onclick="dRezultat.close(); novaIgra(false)">Nov primer</button></p></dialog>
 
 <script>
 const $ = s => document.querySelector(s);
@@ -114,6 +115,7 @@ function izrisiPogovor() {
   el.scrollTop = el.scrollHeight;
 }
 
+const esc = t => String(t ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const inicialke = ime => ime.split(" ").map(d => d[0]).join("");
 
 function izrisiOsumljence() {
@@ -121,7 +123,7 @@ function izrisiOsumljence() {
   for (const o of osumljenci) {
     const d = document.createElement("div");
     d.className = "oseba" + (o.id === izbran ? " izbrana" : "");
-    d.innerHTML = `<span class="ikona">${inicialke(o.ime)}</span><div>${o.ime}<small>${o.vloga}</small></div>`;
+    d.innerHTML = `<span class="ikona">${esc(inicialke(o.ime))}</span><div>${esc(o.ime)}<small>${esc(o.vloga)}</small></div>`;
     d.onclick = () => izberi(o.id);
     $("#osumljenci").appendChild(d);
   }
@@ -198,30 +200,42 @@ async function obtozi(id) {
   $("#dObtozba").close();
   const d = await klic("/api/obtozi", { oseba: id });
   const r = $("#rezultat");
-  if (d.napaka) { r.innerHTML = `<p>${d.napaka}</p>`; }
+  if (d.napaka) { r.innerHTML = `<p>${esc(d.napaka)}</p>`; }
   else {
     r.innerHTML = `<h2 style="color:${d.pravilno ? "var(--ok)" : "var(--danger)"}">${d.pravilno ? "Primer rešen" : "Napačna obtožba"}</h2>`
-      + `<p>Krivec: <b>${d.krivec}</b></p><p>${d.razplet}</p>`
+      + `<p>Krivec: <b>${esc(d.krivec)}</b></p><p>${esc(d.razplet)}</p>`
       + `<p class="prazno">Našli ste ${d.kljucnih_najdenih} od ${d.kljucnih_vseh} ključnih dokazov${d.priznanje ? " in izsilili priznanje" : ""}.</p>`;
   }
   $("#dRezultat").showModal();
 }
 
-async function novaIgra() {
-  const r = await fetch("/api/nova-igra", { method: "POST" }).then(x => x.json()).catch(() => null);
-  if (!r) { alert("Strežnik se ne odziva. Je igra zagnana?"); return; }
+async function novaIgra(klasicna = false) {
+  igra = null; zakleni(true);
+  $("#gNova").disabled = $("#gKlasicna").disabled = $("#gObtozi").disabled = true;
+  $("#osumljenci").innerHTML = ""; $("#belezka").innerHTML = "";
+  $("#naslovPogovora").textContent = "Nov primer";
+  $("#sporocila").innerHTML = '<div class="msg sistem tipkam">' + (klasicna
+    ? "Nalagam klasični primer …"
+    : "AI piše nov primer (kraj, osumljenci, dokazi, krivec). To traja do ene minute …") + "</div>";
+  const r = await fetch("/api/nova-igra", { method: "POST", headers: {"Content-Type": "application/json"},
+                                            body: JSON.stringify({ klasicna }) })
+                  .then(x => x.json()).catch(() => null);
+  $("#gNova").disabled = $("#gKlasicna").disabled = $("#gObtozi").disabled = false;
+  if (!r) { $("#sporocila").innerHTML = '<div class="msg napaka">Strežnik se ne odziva. Je igra zagnana?</div>'; return; }
   $("#aiTrak").style.display = r.ai ? "none" : "block";
   igra = r.igra; osumljenci = r.osumljenci; izbran = null; belezka = [];
   for (const k in pogovori) delete pogovori[k];
   $("#naslovPogovora").textContent = r.naslov;
   $("#sporocila").innerHTML = ""; const u = document.createElement("div");
   u.className = "msg sistem"; u.style.fontSize = "16px"; u.textContent = r.uvod; $("#sporocila").appendChild(u);
+  if (r.opozorilo) { const o = document.createElement("div"); o.className = "msg napaka"; o.textContent = r.opozorilo; $("#sporocila").appendChild(o); }
   zakleni(true); $("#vnos").placeholder = "Izberite osumljenca levo …";
   izrisiOsumljence(); izrisiBelezko();
 }
 
 $("#obrazec").onsubmit = poslji;
-$("#gNova").onclick = () => { if (!igra || confirm("Začnem novo igro?")) novaIgra(); };
+$("#gNova").onclick = () => { if (!igra || confirm("Začnem nov primer?")) novaIgra(false); };
+$("#gKlasicna").onclick = () => { if (!igra || confirm("Začnem klasični primer?")) novaIgra(true); };
 $("#gObtozi").onclick = () => igra && odpriObtozbo();
 novaIgra();
 </script>
