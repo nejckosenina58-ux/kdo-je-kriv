@@ -21,6 +21,12 @@ def sestavi_navodila(igra: Igra, oseba: str) -> str:
         "- Nikoli ne omenjaj, da si AI, model ali da igraš igro. Ne omenjaj oznak, kot je [N1].",
         "- Bodi primeren za šolsko okolje: brez kletvic in žalitev.",
         "- Če te detektiv vpraša kaj, kar ni povezano s primerom, se v vlogi vljudno vrni k zadevi.",
+        "- Odgovori neposredno na TO vprašanje; ne recitiraj vsega, kar veš. Dejstva povej šele, "
+        "ko je vprašanje povezano z njimi.",
+        "- Ne ponavljaj stavkov iz prejšnjih odgovorov. Če te detektiv vpraša isto, odgovori z drugimi "
+        "besedami in pokaži, kako se počutiš (npr. nestrpnost, nervoza, užaljenost).",
+        "- Tvoje razpoloženje se spreminja: bolj ko te detektiv pritiska s pravimi vprašanji, bolj si "
+        "nemiren ali obrambno naravnan, a skrivnosti NE izdaš, dokler ni zgoraj napisano, da jo priznaš.",
         "",
         f"TVOJA ZGODBA (to poveš vsakomur): {o['alibi']}",
     ]

@@ -5,7 +5,7 @@ from flask import Flask, jsonify, render_template, request
 
 load_dotenv()
 
-from igra.ai import AINapaka, odgovori          # noqa: E402  (po load_dotenv)
+from igra.ai import AINapaka, nacin, odgovori         # noqa: E402  (po load_dotenv)
 from igra.stanje import Igra                    # noqa: E402
 from igra.zgodba import NAMIGI, OSUMLJENCI, PRIMER  # noqa: E402
 
@@ -38,6 +38,7 @@ def nova_igra():
     IGRE[igra.id] = igra
     return jsonify(
         igra=igra.id,
+        nacin=nacin(),
         naslov=PRIMER["naslov"],
         uvod=PRIMER["uvod"],
         osumljenci=[{"id": k, "ime": o["ime"], "vloga": o["vloga"]}
@@ -95,6 +96,8 @@ def obtozi():
         return jsonify(napaka="Izberite, koga obtožujete."), 400
     return jsonify(igra.obtozi(oseba))
 
+
+app.logger.warning("Način AI: %s", nacin())
 
 if __name__ == "__main__":
     import os

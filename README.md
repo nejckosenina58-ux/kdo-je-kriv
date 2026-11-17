@@ -20,7 +20,10 @@ python -m venv .venv
 pip install -r requirements.txt
 copy .env.example .env        # Linux/macOS: cp .env.example .env
 ```
-V `.env` vpišite svoj `ANTHROPIC_API_KEY`. Če ključa nimate, nastavite `AI_PONUDNIK=demo`.
+V `.env` vpišite svoj `ANTHROPIC_API_KEY`. Brez ključa igra samodejno teče v demo načinu (`AI_PONUDNIK=auto`), kar vmesnik pokaže z rdečim trakom.
+
+### Objava na Renderju (pravi AI)
+V Render → *Environment* nastavite `ANTHROPIC_API_KEY` in **odstranite** `AI_PONUDNIK=demo` (ali ga nastavite na `auto`/`anthropic`). Nato *Manual Deploy*. Če je na strani rdeč trak »Demo način«, ključ ni nastavljen.
 
 ```bash
 python app.py
