@@ -9,7 +9,7 @@ Spletna detektivska igra. Igralec rešuje skrivnost: iz zbornice je izginila ovo
 Dijaki in obiskovalci informativnega dne. Igra traja 10–20 minut in ne zahteva tehničnega znanja.
 
 ## Katero AI uporablja
-Jezikovni model **Anthropic Claude** prek API-ja (Python SDK `anthropic`). Za primerjavo preizkusimo še Google Gemini in en lokalni model prek Ollame. Utemeljitev izbire je v tedenskem poročilu.
+Jezikovni model **xAI Grok** (`grok-4.7`) prek OpenAI-združljivega API-ja (Python SDK `openai`, `https://api.x.ai/v1`). Kot rezerva je podprt še Anthropic Claude. Za primerjavo preizkusimo še Google Gemini in en lokalni model prek Ollame. Utemeljitev izbire je v tedenskem poročilu.
 
 ## Ključni trik: resnico hrani koda, ne AI
 - Kdo je kriv, kje je ovojnica in kateri dokazi kaj odklenejo, piše samo v kodi (`igra/zgodba.py`).
@@ -19,7 +19,7 @@ Jezikovni model **Anthropic Claude** prek API-ja (Python SDK `anthropic`). Za pr
 
 ## Skica delovanja
 ```
- Igralec (brskalnik)                 Strežnik (Python/Flask)                        AI (Claude)
+ Igralec (brskalnik)                 Strežnik (Python/Flask)                        AI (Grok)  
  ┌──────────────┐  vprašanje   ┌──────────────────────────────────┐  navodila za   ┌───────────┐
  │ izbere osebo │ ───────────▶ │ 1. odstrani osebne podatke       │  to osebo +    │ odgovori  │
  │ vpraša /     │              │ 2. sestavi navodila samo iz      │  zgodovina     │ v vlogi   │
